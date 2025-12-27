@@ -1,0 +1,12 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# MacOS
+.DS_Store
+
+# Railway config (opcional si usás)
+railway/
