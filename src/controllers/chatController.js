@@ -5,6 +5,7 @@ const OpenAI = require('openai');
 
 // ✅ ÚNICA CORRECCIÓN: importar config correctamente
 const config = require('../config/config');
+
 const {
     systemPrompt,
     generarConsejoCuidado,
