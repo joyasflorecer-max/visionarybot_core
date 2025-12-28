@@ -7,4 +7,3 @@ const main = () => {
     iniciarWhatsApp(procesarMensaje);
 };
 
-main();

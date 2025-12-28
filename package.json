@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+    "start": "node index.js",
+    "git:add": "git add .",
+    "git:commit": "git commit -m \"actualización automática\"",
+    "git:push": "git push origin main"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
