@@ -3,8 +3,9 @@
 const { buscarProductos } = require('../services/wooService');
 const OpenAI = require('openai');
 
-// ✅ Corrección aquí: importar config correctamente
+// ✅ CORRECTO: importar config
 const config = require('../config/config');
+
 const {
     systemPrompt,
     generarConsejoCuidado,
@@ -13,7 +14,7 @@ const {
     decidirRespuesta,
 } = require('../utils/respuestasIA');
 
-// ✅ Corrección aquí: usar apiKey con fallback si no carga config correctamente
+// ✅ FIX: usar respaldo con process.env en caso de fallo
 const openai = new OpenAI({
     apiKey: config?.openai?.apiKey || process.env.OPENAI_KEY,
 });
@@ -123,6 +124,8 @@ const procesarMensaje = async (msg, socket) => {
         });
         return;
     }
+
+    // ========================= IA =========================
 
     try {
         await escribir(1800);
