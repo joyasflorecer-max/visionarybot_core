@@ -1,20 +1,11 @@
-// UBICACIÓN: src/controllers/chatController.js
-
 const { buscarProductos } = require('../services/wooService');
-const { OpenAI } = require('openai'); // ✅ Corrección aquí
-const config = require('../config/config');
 
 const {
-    systemPrompt,
     generarConsejoCuidado,
     activarAlertaSiSeSolicitaContacto,
     obtenerLink,
     decidirRespuesta,
 } = require('../utils/respuestasIA');
-
-const openai = new OpenAI({ // ✅ Corrección aquí
-    apiKey: config.openai.apiKey,
-});
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
@@ -122,38 +113,86 @@ const procesarMensaje = async (msg, socket) => {
         return;
     }
 
-    try {
-        await escribir(1800);
+    const categorias = {
+        anillo: { id: 17, nombre: 'Anillos' },
+        aro: { id: 20, nombre: 'Aros' },
+        pulsera: { id: 18, nombre: 'Pulseras' },
+        dije: { id: 22, nombre: 'Dijes' },
+        conjunto: { id: 21, nombre: 'Conjuntos' }
+    };
 
-        const decision = decidirRespuesta(textoUsuario);
+    const clavesCategorias = Object.keys(categorias).sort((a, b) => b.length - a.length);
+    let categoriaDetectada = null;
 
-        if (decision.respuesta) {
-            await socket.sendMessage(numeroUsuario, {
-                text: `${decision.respuesta}\n\n⭐ Escribí *volver* para ver el menú`
-            });
-            return;
+    for (const clave of clavesCategorias) {
+        const re = new RegExp(`\\b${clave}(?:s)?\\b`, 'i');
+        if (re.test(textoUsuario)) {
+            categoriaDetectada = clave;
+            break;
+        }
+    }
+
+    if (categoriaDetectada) {
+        await escribir(800);
+
+        const materialGuardado = (estadoUsuario[numeroUsuario] || 'plata').toLowerCase();
+        const materialId = materialGuardado === 'acero' ? 24 : 23;
+        const materialTexto = materialId === 23 ? 'Plata 925 🥈' : 'Acero quirúrgico ⛓️';
+
+        const { id: categoriaId, nombre } = categorias[categoriaDetectada];
+
+        const linkCatalogo =
+            `https://joyasflorecer.com.ar/?b_product_cat=${categoriaId}&b_pa_material=${materialId}`;
+
+        const mensaje =
+            `✨ *${nombre} en ${materialTexto}* ✨\n\n` +
+            'Acá podés ver *todo el catálogo disponible*:\n\n' +
+            `${linkCatalogo}\n\n` +
+            '⭐ Escribí *volver* para regresar al inicio\n' +
+            '💖 O escribime si querés ayuda para elegir';
+
+        try {
+            const productos = await buscarProductos(
+                materialGuardado === 'plata' ? 'Plata' : 'Acero',
+                categoriaDetectada
+            );
+
+            const imagenURL = productos?.[0]?.images?.[0]?.src;
+
+            if (imagenURL) {
+                await socket.sendMessage(numeroUsuario, {
+                    image: { url: imagenURL },
+                    caption: mensaje
+                });
+            } else {
+                await socket.sendMessage(numeroUsuario, { text: mensaje });
+            }
+        } catch {
+            await socket.sendMessage(numeroUsuario, { text: mensaje });
         }
 
-        const respuesta = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: textoUsuario }
-            ],
-        });
+        return;
+    }
 
-        await socket.sendMessage(numeroUsuario, {
-            text: `${respuesta.choices[0].message.content}\n\n⭐ Escribí *volver* para ver el menú`
-        });
-
-    } catch (error) {
-        console.error('❌ Error IA:', error);
+    if (textoUsuario === 'volver' || textoUsuario === 'inicio') {
+        await escribir();
         await socket.sendMessage(numeroUsuario, {
             text:
-                '💫 No llegué a entenderte del todo.\n\n' +
-                'Podés escribir *volver* para regresar al inicio 💍'
+                '🔁 Volvemos al inicio 😊\n\n' +
+                '*1️⃣* 💎 Ver el *CATÁLOGO*\n' +
+                '*2️⃣* 💬 Consultar *INFO / ASESORAMIENTO*'
         });
+        return;
     }
+
+    // Si no se detecta ninguna categoría ni comando, respuesta por defecto sin IA
+    await escribir();
+    await socket.sendMessage(numeroUsuario, {
+        text:
+            '💫 ¡Estoy para ayudarte con tu compra!\n\n' +
+            'Podés escribir *ver catálogo* o el nombre de una joya (ej: anillo, pulsera)\n\n' +
+            'O escribí *volver* para regresar al menú'
+    });
 };
 
 module.exports = { procesarMensaje };
