@@ -1,18 +1,14 @@
+// UBICACIÓN: src/controllers/chatController.js
+
 const { buscarProductos } = require('../services/wooService');
-
-const {
-    generarConsejoCuidado,
-    activarAlertaSiSeSolicitaContacto,
-    obtenerLink,
-    decidirRespuesta,
-} = require('../utils/respuestasIA');
-
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
-
 const estadoUsuario = {};
 
 const procesarMensaje = async (msg, socket) => {
     const numeroUsuario = msg.key.remoteJid;
+
+    if (!msg.message) return; // ✅ Corrección para evitar errores si no hay mensaje
+
     const textoUsuario = (
         msg.message.conversation ||
         msg.message.extendedTextMessage?.text ||
@@ -66,28 +62,6 @@ const procesarMensaje = async (msg, socket) => {
                 'En breve una persona real se va a comunicar con vos para ayudarte mejor 🤍\n\n' +
                 '⭐ Mientras tanto podés escribir *volver* para regresar al inicio'
         });
-
-        try {
-            const numeroAdmin = process.env.NUMERO_ADMIN?.trim();
-            const numeroAdminFormatoWA = numeroAdmin ? `${numeroAdmin}@s.whatsapp.net` : null;
-            const numeroLimpio = numeroUsuario.split('@')[0];
-            const nombreCliente = msg.pushName || 'Cliente sin nombre';
-
-            if (numeroAdminFormatoWA) {
-                await socket.sendMessage(numeroAdminFormatoWA, {
-                    text:
-                        '🚨 *ALERTA DE CONSULTA* 🚨\n\n' +
-                        `🙋‍♀️ *Perfil:* ${nombreCliente}\n` +
-                        `📱 *Contacto:* @${numeroLimpio}\n` +
-                        `💬 *Mensaje:* "${textoUsuario}"\n\n` +
-                        '👆 *Tocá el nombre azul para abrir el chat*',
-                    mentions: [numeroUsuario]
-                });
-            }
-        } catch (error) {
-            console.error('❌ Error al enviar alerta al admin:', error);
-        }
-
         return;
     }
 
@@ -185,13 +159,12 @@ const procesarMensaje = async (msg, socket) => {
         return;
     }
 
-    // Si no se detecta ninguna categoría ni comando, respuesta por defecto sin IA
+    // 🔚 Si no coincide con nada, mensaje genérico
     await escribir();
     await socket.sendMessage(numeroUsuario, {
         text:
-            '💫 ¡Estoy para ayudarte con tu compra!\n\n' +
-            'Podés escribir *ver catálogo* o el nombre de una joya (ej: anillo, pulsera)\n\n' +
-            'O escribí *volver* para regresar al menú'
+            '💫 No llegué a entenderte del todo.\n\n' +
+            'Podés escribir *volver* para regresar al inicio 💍'
     });
 };
 
