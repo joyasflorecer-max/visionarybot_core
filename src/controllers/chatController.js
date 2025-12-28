@@ -2,16 +2,21 @@
 
 const { buscarProductos } = require('../services/wooService');
 const OpenAI = require('openai');
+
+// ✅ ÚNICA CORRECCIÓN: importar config correctamente
+const config = require('../config');
+
 const {
     systemPrompt,
     generarConsejoCuidado,
     activarAlertaSiSeSolicitaContacto,
     obtenerLink,
-    decidirRespuesta, // ✅ AGREGAR ESTA IMPORTACIÓN
+    decidirRespuesta,
 } = require('../utils/respuestasIA');
 
+// ✅ ÚNICA CORRECCIÓN: usar la API key desde config
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_KEY,
+    apiKey: config.openai.apiKey,
 });
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -120,120 +125,19 @@ const procesarMensaje = async (msg, socket) => {
         return;
     }
 
-    const categorias = {
-        anillo: { id: 17, nombre: 'Anillos' },
-        aro: { id: 20, nombre: 'Aros' },
-        pulsera: { id: 18, nombre: 'Pulseras' },
-        dije: { id: 22, nombre: 'Dijes' },
-        conjunto: { id: 21, nombre: 'Conjuntos' }
-    };
+    // ========================= IA =========================
 
-    const clavesCategorias = Object.keys(categorias).sort((a, b) => b.length - a.length);
-    let categoriaDetectada = null;
-
-    for (const clave of clavesCategorias) {
-        const re = new RegExp(`\\b${clave}(?:s)?\\b`, 'i');
-        if (re.test(textoUsuario)) {
-            categoriaDetectada = clave;
-            break;
-        }
-    }
-
-    if (categoriaDetectada) {
-        await escribir(800);
-
-        const materialGuardado = (estadoUsuario[numeroUsuario] || 'plata').toLowerCase();
-        const materialId = materialGuardado === 'acero' ? 24 : 23;
-        const materialTexto = materialId === 23 ? 'Plata 925 🥈' : 'Acero quirúrgico ⛓️';
-
-        const { id: categoriaId, nombre } = categorias[categoriaDetectada];
-
-        const linkCatalogo =
-            `https://joyasflorecer.com.ar/?b_product_cat=${categoriaId}&b_pa_material=${materialId}`;
-
-        const mensaje =
-            `✨ *${nombre} en ${materialTexto}* ✨\n\n` +
-            'Acá podés ver *todo el catálogo disponible*:\n\n' +
-            `${linkCatalogo}\n\n` +
-            '⭐ Escribí *volver* para regresar al inicio\n' +
-            '💖 O escribime si querés ayuda para elegir';
-
-        try {
-            const productos = await buscarProductos(
-                materialGuardado === 'plata' ? 'Plata' : 'Acero',
-                categoriaDetectada
-            );
-
-            const imagenURL = productos?.[0]?.images?.[0]?.src;
-
-            if (imagenURL) {
-                await socket.sendMessage(numeroUsuario, {
-                    image: { url: imagenURL },
-                    caption: mensaje
-                });
-            } else {
-                await socket.sendMessage(numeroUsuario, { text: mensaje });
-            }
-        } catch {
-            await socket.sendMessage(numeroUsuario, { text: mensaje });
-        }
-
-        return;
-    }
-
-    if (textoUsuario === 'volver' || textoUsuario === 'inicio') {
-        await escribir();
-        await socket.sendMessage(numeroUsuario, {
-            text:
-                '🔁 Volvemos al inicio 😊\n\n' +
-                '*1️⃣* 💎 Ver el *CATÁLOGO*\n' +
-                '*2️⃣* 💬 Consultar *INFO / ASESORAMIENTO*'
-        });
-        return;
-    }
-
-    // ====================================================================
-    // 🔥 AQUÍ ESTÁ EL CAMBIO PRINCIPAL - USAR decidirRespuesta() PRIMERO
-    // ====================================================================
     try {
         await escribir(1800);
 
-        // ✅ PASO 1: Ejecutar la lógica inteligente ANTES de OpenAI
         const decision = decidirRespuesta(textoUsuario);
 
-        // ✅ PASO 2: Si detecta contacto humano, enviar alerta
-        if (decision.tipo === 'contacto_humano' || activarAlertaSiSeSolicitaContacto(textoUsuario)) {
-            const numeroAdmin = process.env.NUMERO_ADMIN?.trim();
-            const numeroAdminFormatoWA = numeroAdmin ? `${numeroAdmin}@s.whatsapp.net` : null;
-            const numeroLimpio = numeroUsuario.split('@')[0];
-            const nombreCliente = msg.pushName || 'Cliente sin nombre';
-
-            if (numeroAdminFormatoWA) {
-                await socket.sendMessage(numeroAdminFormatoWA, {
-                    text:
-                        '🚨 *ALERTA DE CONSULTA POR IA* 🚨\n\n' +
-                        `🙋‍♀️ *Perfil:* ${nombreCliente}\n` +
-                        `📱 *Contacto:* @${numeroLimpio}\n` +
-                        `💬 *Mensaje:* "${textoUsuario}"\n\n` +
-                        '👆 *Tocá el nombre azul para abrir el chat*',
-                    mentions: [numeroUsuario]
-                });
-            }
-        }
-
-        // ✅ PASO 3: Si ya tiene respuesta directa (cuidado, regalo, etc.), enviarla SIN OpenAI
         if (decision.respuesta) {
-            console.log('✅ Respuesta directa del sistema:', decision.tipo);
-            
             await socket.sendMessage(numeroUsuario, {
                 text: `${decision.respuesta}\n\n⭐ Escribí *volver* para ver el menú`
             });
-            
-            return; // ⚠️ IMPORTANTE: Salir aquí, NO llamar a OpenAI
+            return;
         }
-
-        // ✅ PASO 4: Si NO tiene respuesta directa, entonces SÍ llamar a OpenAI
-        console.log('🤖 Llamando a OpenAI para conversación libre...');
 
         const respuesta = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
@@ -243,10 +147,8 @@ const procesarMensaje = async (msg, socket) => {
             ],
         });
 
-        const textoIA = respuesta.choices[0].message.content;
-
         await socket.sendMessage(numeroUsuario, {
-            text: `${textoIA}\n\n⭐ Escribí *volver* para ver el menú`
+            text: `${respuesta.choices[0].message.content}\n\n⭐ Escribí *volver* para ver el menú`
         });
 
     } catch (error) {
