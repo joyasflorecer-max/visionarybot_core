@@ -20,37 +20,24 @@ const linksPorMaterialYCategoria = {
   },
 };
 
-// ===============================
-// 🧠 ANÁLISIS DE MENSAJE (FLEXIBLE)
-// ===============================
 function analizarMensajeUsuario(mensaje) {
   if (!mensaje) return { material: null, categoria: null, confianza: 0 };
   const m = mensaje.toLowerCase();
-
-  // 1. Detectar MATERIAL
   let material = null;
   if (m.match(/(plata|925)/)) material = "plata";
   else if (m.match(/(acero|quirurgico|quirúrgico|dorado|acero blanco)/)) material = "acero";
-
-  // 2. Detectar CATEGORÍA (con más sinónimos)
   let categoria = null;
   if (m.match(/(anillo|sortija|alianza)/)) categoria = "anillos";
   else if (m.match(/(aro|pendiente|caravana|arito|argolla)/)) categoria = "aros";
   else if (m.match(/(pulsera|brazalete|esclava|tobillera|cadena de mano)/)) categoria = "pulseras";
   else if (m.match(/(dije|colgante|medalla|cruz|cadena con)/)) categoria = "dijes";
   else if (m.match(/(conjunto|set|combo|juego)/)) categoria = "conjuntos";
-
-  // Confianza: Si tenemos ambos, es potencialmente una venta directa
   let confianza = 0;
   if (material) confianza += 50;
   if (categoria) confianza += 50;
-
   return { material, categoria, confianza };
 }
 
-// ===============================
-// 🔗 OBTENER LINK
-// ===============================
 function obtenerLink(material, categoria = "todos") {
   if (!material) return null;
   const mat = material.toLowerCase();
@@ -58,77 +45,34 @@ function obtenerLink(material, categoria = "todos") {
   return linksPorMaterialYCategoria[mat]?.[cat] || linksPorMaterialYCategoria[mat]?.todos;
 }
 
-// ===============================
-// 🚨 DETECCIÓN DE HUMANO (MEJORADA Y COMPLETA)
-// ===============================
 function activarAlertaSiSeSolicitaContacto(mensaje) {
   if (!mensaje) return false;
   const m = mensaje.toLowerCase().trim();
-
-  // ❌ PALABRAS QUE NO DEBEN ACTIVAR LA ALERTA (contexto diferente)
-  // Si dicen solo "consulta" o "ayuda", la IA lo resuelve.
   if (m === 'consulta' || m === 'consultas' || m === 'ayuda' || m === 'duda' || m === 'consejo') {
     return false;
   }
-
-  // ✅ FRASES COMPLETAS que piden contacto humano
   const frasesCompletas = [
-    "hablar con una persona", 
-    "hablar con alguien", 
-    "atención humana",
-    "atención real",
-    "quiero que me atienda alguien",
-    "necesito un asesor", 
-    "necesito hablar con un asesor",
-    "contactar con alguien",
-    "comunicarme con alguien",
-    "pasame con alguien",
-    "pasarme con alguien",
-    "comunicarme con una persona",
-    "hablar con un humano",
-    "quiero hablar",
-    "necesito hablar"
+    "hablar con una persona", "hablar con alguien", "atención humana", "atención real",
+    "quiero que me atienda alguien", "necesito un asesor", "necesito hablar con un asesor",
+    "contactar con alguien", "comunicarme con alguien", "pasame con alguien", "pasarme con alguien",
+    "comunicarme con una persona", "hablar con un humano", "quiero hablar", "necesito hablar"
   ];
-
-  // Verificar frases completas primero
   if (frasesCompletas.some(frase => m.includes(frase))) {
     return true;
   }
-
-  // ✅ PALABRAS CLAVE SOLAS (cuando el mensaje es corto y directo)
-  // Solo activar si el mensaje tiene 5 palabras o menos Y contiene estas palabras
   const palabras = m.split(' ').filter(p => p.length > 0);
   const esMensajeCorto = palabras.length <= 5;
-
   if (esMensajeCorto) {
-    const palabrasClave = [
-      'asesor',
-      'asesora', 
-      'vendedor',
-      'vendedora',
-      'operador',
-      'operadora',
-      'agente',
-      'persona real',
-      'humano',
-      'humana',
-      'alguien',
-      'representante'
-    ];
-
-    // Verificar si alguna palabra clave está en el mensaje
+    const palabrasClave = ['asesor', 'asesora', 'vendedor', 'vendedora', 'operador', 'operadora', 
+                           'agente', 'persona real', 'humano', 'humana', 'alguien', 'representante'];
     const contieneClaveDirecta = palabrasClave.some(palabra => {
-      // Buscar la palabra completa (con límites de palabra)
       const regex = new RegExp(`\\b${palabra}\\b`, 'i');
       return regex.test(m);
     });
-
     if (contieneClaveDirecta) {
       return true;
     }
   }
-
-  // ✅ PATRONES CON "QUIERO/NECESITO + VERBO"
   const patronesAccion = [
     /quiero (hablar|comunicarme|contactar(me)?|que me atiendan?)/i,
     /necesito (hablar|comunicarme|contactar(me)?|un asesor|una persona)/i,
@@ -136,22 +80,15 @@ function activarAlertaSiSeSolicitaContacto(mensaje) {
     /puedo (hablar|comunicarme|contactar(me)?)/i,
     /me (paso|pasa|comunico|contacto) con/i
   ];
-
   if (patronesAccion.some(patron => patron.test(mensaje))) {
     return true;
   }
-
   return false;
 }
 
-// ===============================
-// 🤖 CEREBRO PRINCIPAL (DECISIÓN DE FLUJO)
-// ===============================
 function decidirRespuesta(mensaje, contexto = {}) {
   if (!mensaje) return { tipo: "ia_libre", respuesta: null };
   const m = mensaje.toLowerCase();
-
-  // 1. 🚨 ALERTA DE HUMANO (Prioridad Técnica)
   if (activarAlertaSiSeSolicitaContacto(mensaje)) {
     return {
       tipo: "contacto_humano",
@@ -159,30 +96,18 @@ function decidirRespuesta(mensaje, contexto = {}) {
       alertaHumano: true
     };
   }
-
   const analisis = analizarMensajeUsuario(mensaje);
-
-  // 2. 🧼 DETECCIÓN DE INTENCIÓN INFORMATIVA (NO VENTA)
-  // Si pregunta limpieza, cuidado, o "se puso negra", AUNQUE nombre el producto,
-  // NO mandamos el link directo. Dejamos que la IA explique primero.
   const esInformativo = m.match(/(limpiar|limpieza|cuidar|cuidado|brillo|negra|negro|oscuro|oscura|sucio|sucia|opaco|opaca|manchado|manchada|consejo|duda|pregunta|informacion|información)/);
-
   if (esInformativo) {
-    // Buscamos el link por si la IA quiere usarlo al final, pero forzamos modo libre
     const posibleLink = obtenerLink(analisis.material, analisis.categoria);
     return {
-      tipo: "ia_libre_informativa", // Nuevo tipo para identificar
+      tipo: "ia_libre_informativa",
       respuesta: null,
       analisis: { ...analisis, linkSugerido: posibleLink, esConsulta: true }
     };
   }
-
-  // 3. 🛒 INTENCIÓN DE COMPRA CLARA (Link Directo)
-  // Solo si NO es informativo y tenemos Material + Categoría
   if (analisis.confianza === 100) {
     const link = obtenerLink(analisis.material, analisis.categoria);
-    
-    // Mensajes personalizados por material y categoría
     const mensajesVenta = {
       plata: {
         anillos: "¡Hermosa elección! 💍 Los anillos en plata 925 son elegantes y atemporales.",
@@ -199,18 +124,14 @@ function decidirRespuesta(mensaje, contexto = {}) {
         conjuntos: "¡Perfecto! 💎 Los conjuntos en acero son prácticos y elegantes."
       }
     };
-
     const mensaje = mensajesVenta[analisis.material]?.[analisis.categoria] || 
                     `💎 ¡Mirá nuestras hermosas ${analisis.categoria} en ${analisis.material}!`;
-
     return {
       tipo: "link_directo",
       respuesta: `${mensaje}\n\n👉 ${link}\n\n⭐ Escribí *volver* para regresar al menú.`,
       analisis
     };
   }
-
-  // 4. ⚠️ SI TIENE SOLO MATERIAL → PREGUNTAR CATEGORÍA
   if (analisis.material && !analisis.categoria) {
     return {
       tipo: "falta_categoria",
@@ -218,8 +139,6 @@ function decidirRespuesta(mensaje, contexto = {}) {
       analisis
     };
   }
-
-  // 5. ⚠️ SI TIENE SOLO CATEGORÍA → PREGUNTAR MATERIAL
   if (analisis.categoria && !analisis.material) {
     return {
       tipo: "falta_material",
@@ -227,9 +146,6 @@ function decidirRespuesta(mensaje, contexto = {}) {
       analisis
     };
   }
-
-  // 6. 🕊️ LIBERTAD TOTAL (IA)
-  // No hay venta segura ni alerta humana. La IA decide qué preguntar o decir.
   return {
     tipo: "ia_libre",
     respuesta: null,
@@ -237,9 +153,6 @@ function decidirRespuesta(mensaje, contexto = {}) {
   };
 }
 
-// ===============================
-// 🧠 PROMPT MAESTRO (PERSONALIDAD AUTÓNOMA)
-// ===============================
 const systemPrompt = `
 Sos *Maillen*, la asesora experta y virtual de *Joyas Florecer*.
 Actuá con naturalidad, empatía y autonomía. Sos inteligente y resolutiva.
@@ -309,9 +222,6 @@ Actuá con naturalidad, empatía y autonomía. Sos inteligente y resolutiva.
 - Siempre terminá invitando sutilmente a escribir *volver* si el cliente necesita el menú.
 `.trim();
 
-// ===============================
-// EXPORTAR
-// ===============================
 module.exports = {
   analizarMensajeUsuario,
   obtenerLink,
