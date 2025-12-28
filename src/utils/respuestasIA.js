@@ -201,7 +201,7 @@ function decidirRespuesta(mensaje, contexto = {}) {
     };
 
     const mensaje = mensajesVenta[analisis.material]?.[analisis.categoria] || 
-                    `💍 ¡Mirá nuestras hermosas ${analisis.categoria} en ${analisis.material}!`;
+                    `💎 ¡Mirá nuestras hermosas ${analisis.categoria} en ${analisis.material}!`;
 
     return {
       tipo: "link_directo",
@@ -279,7 +279,7 @@ Actuá con naturalidad, empatía y autonomía. Sos inteligente y resolutiva.
 
 3. **DETECTAR ORO / MATERIALES AJENOS:**
    - Si preguntan por Oro, respondé la duda técnica si la sabés (limpieza, características).
-   - Pero aclará con simpatía: "Nosotros en Joyas Florecer trabajamos con Plata 925 y Acero quirúrgico, que son eternos y accesibles. Si te interesan, avisame 🤍"
+   - Pero aclará con simpatía: "Nosotros en Joyas Florecer trabajamos con Plata 925 y Acero quirúrgico, que son eternos y accesibles. Si te interesan, avisame 🤗"
 
 4. **ALERTA HUMANA (Solo si piden explícitamente):**
    - SOLO si dicen "quiero hablar con una persona" o "necesito un asesor humano".
@@ -318,3 +318,4 @@ module.exports = {
   activarAlertaSiSeSolicitaContacto,
   decidirRespuesta,
   systemPrompt
+};
