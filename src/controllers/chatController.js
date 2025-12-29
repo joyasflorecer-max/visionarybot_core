@@ -8,11 +8,14 @@ const estadoUsuario = {};
 
 const procesarMensaje = async (msg, socket) => {
     const numeroUsuario = msg.key.remoteJid;
+
     const textoUsuario = (
-        msg.message.conversation ||
-        msg.message.extendedTextMessage?.text ||
+        msg.message?.conversation ||
+        msg.message?.extendedTextMessage?.text ||
         ''
     ).trim().toLowerCase();
+
+    if (!textoUsuario) return;
 
     console.log(`📩 ${numeroUsuario}: ${textoUsuario}`);
 
