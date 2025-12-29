@@ -1,14 +1,13 @@
 // UBICACIÓN: src/controllers/chatController.js
 
-const { buscarProductos } = require('../services/wooService');
+const { buscarProductos } = require('../services/wooService'); // Asegúrate que wooService.js esté bien exportado
+
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
 const estadoUsuario = {};
 
 const procesarMensaje = async (msg, socket) => {
     const numeroUsuario = msg.key.remoteJid;
-
-    if (!msg.message) return; // ✅ Corrección para evitar errores si no hay mensaje
-
     const textoUsuario = (
         msg.message.conversation ||
         msg.message.extendedTextMessage?.text ||
@@ -159,8 +158,6 @@ const procesarMensaje = async (msg, socket) => {
         return;
     }
 
-    // 🔚 Si no coincide con nada, mensaje genérico
-    await escribir();
     await socket.sendMessage(numeroUsuario, {
         text:
             '💫 No llegué a entenderte del todo.\n\n' +
