@@ -8,6 +8,12 @@ const estadoUsuario = {};
 
 const procesarMensaje = async (msg, socket) => {
     const numeroUsuario = msg.key.remoteJid;
+
+    if (!msg.message) {
+        console.log('Mensaje sin contenido. Se ignora.');
+        return;
+    }
+
     const textoUsuario = (
         msg.message.conversation ||
         msg.message.extendedTextMessage?.text ||
@@ -58,7 +64,7 @@ const procesarMensaje = async (msg, socket) => {
         await socket.sendMessage(numeroUsuario, {
             text:
                 '💬 ¡Perfecto! 😊\n\n' +
-                'En breve una persona real se va a comunicar con vos para ayudarte mejor 🤍\n\n' +
+                'En breve una persona real se va a comunicar con vos para ayudarte mejor ♥\n\n' +
                 '⭐ Mientras tanto podés escribir *volver* para regresar al inicio'
         });
         return;
@@ -78,9 +84,9 @@ const procesarMensaje = async (msg, socket) => {
                 '¿Qué tipo de joya te gustaría ver?\n\n' +
                 '💍 Anillos\n' +
                 '👂 Aros\n' +
-                '🤍 Pulseras\n' +
+                '♥ Pulseras\n' +
                 '✨ Dijes\n' +
-                '🎁 Conjuntos\n\n' +
+                '🏱 Conjuntos\n\n' +
                 '⭐ Escribí *volver* para regresar al inicio'
         });
         return;
@@ -130,7 +136,7 @@ const procesarMensaje = async (msg, socket) => {
                 categoriaDetectada
             );
 
-            const imagenURL = productos?.[0]?.images?.length > 0 ? productos[0].images[0].src : null;
+            const imagenURL = productos?.[0]?.images?.[0]?.src;
 
             if (imagenURL) {
                 await socket.sendMessage(numeroUsuario, {
@@ -151,7 +157,7 @@ const procesarMensaje = async (msg, socket) => {
         await escribir();
         await socket.sendMessage(numeroUsuario, {
             text:
-                '🔁 Volvemos al inicio 😊\n\n' +
+                '🔀 Volvemos al inicio 😊\n\n' +
                 '*1️⃣* 💎 Ver el *CATÁLOGO*\n' +
                 '*2️⃣* 💬 Consultar *INFO / ASESORAMIENTO*'
         });
