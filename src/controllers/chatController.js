@@ -1,6 +1,6 @@
 // UBICACIÓN: src/controllers/chatController.js
 
-const { buscarProductos } = require('../services/wooService'); // Asegúrate que wooService.js esté bien exportado
+const { buscarProductos } = require('../services/wooService');
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
@@ -130,7 +130,7 @@ const procesarMensaje = async (msg, socket) => {
                 categoriaDetectada
             );
 
-            const imagenURL = productos?.[0]?.images?.[0]?.src;
+            const imagenURL = productos?.[0]?.images?.length > 0 ? productos[0].images[0].src : null;
 
             if (imagenURL) {
                 await socket.sendMessage(numeroUsuario, {
