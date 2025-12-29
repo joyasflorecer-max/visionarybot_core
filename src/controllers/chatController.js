@@ -1,6 +1,9 @@
+// UBICACIÓN: src/controllers/chatController.js
+
 const { buscarProductos } = require('../services/wooService');
 
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
 const estadoUsuario = {};
 
 const procesarMensaje = async (msg, socket) => {
@@ -19,7 +22,9 @@ const procesarMensaje = async (msg, socket) => {
         await socket.sendPresenceUpdate('paused', numeroUsuario);
     };
 
-    const palabrasSaludo = ['hola', 'buenos días', 'buen dia', 'buenas tardes', 'buenas noches', 'buenas', 'buenos'];
+    const palabrasSaludo = [
+        'hola', 'buenos días', 'buen dia', 'buenas tardes', 'buenas noches', 'buenas', 'buenos'
+    ];
 
     if (palabrasSaludo.some(p => textoUsuario.includes(p))) {
         await escribir(1500);
@@ -135,8 +140,7 @@ const procesarMensaje = async (msg, socket) => {
             } else {
                 await socket.sendMessage(numeroUsuario, { text: mensaje });
             }
-        } catch (error) {
-            console.error('Error al buscar productos:', error);
+        } catch {
             await socket.sendMessage(numeroUsuario, { text: mensaje });
         }
 
