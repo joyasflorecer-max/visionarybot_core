@@ -6,4 +6,5 @@ const main = () => {
     // Iniciamos WhatsApp y le decimos: "Cuando llegue un mensaje, usa el cerebro de procesarMensaje"
     iniciarWhatsApp(procesarMensaje);
 };
-
+// 🟢 Ejecutamos la función
+main();
